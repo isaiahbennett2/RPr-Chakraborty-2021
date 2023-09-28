@@ -147,7 +147,7 @@ The American Community Survey (ACS) five-year estimate (2014-2018) variables use
 Details on ACS data collection can be found at <https://www.census.gov/topics/health/disability/guidance/data-collection-acs.html> and details on sampling methods and accuracy can be found at <https://www.census.gov/programs-surveys/acs/technical-documentation/code-lists.html>.
 
 |                            Variable Name in Study                            |                                               ACS Variable name                                                |
-|:----------------------------------:|:----------------------------------:|
+|:----------------------------:|:----------------------------------------:|
 | percent of total civilian non-institutionalized population with a disability |                                                 S1810_C03_001E                                                 |
 |                                   **Race**                                   |                                                                                                                |
 |                      percent w disability: White alone                       |                                                 S1810_C03_004E                                                 |
@@ -356,7 +356,7 @@ However, we replace the missing data with zeros, producing results identical to 
 
 ```{r missing data}
 # county with missing data
-filter(acs_covid, is.na(bpov_pct)) %>% st_drop_geometry() %>% kable()
+filter(acs_covid, is.na(bpov_pct)) %>% st_drop_geometry() %>% kable(caption="Missing Data") %>% kable_styling(full_width = FALSE)
 
 # replace NA with 0 for missing data
 acs_covid[is.na(acs_covid$bpov_pct), ]$bpov_pct <- 0
@@ -740,7 +740,7 @@ covid_kulldorff <- kulldorff(
   cases = covid_table$cases,
   population = covid_table$pop,
   expected.cases = expected.cases,
-  pop.upper.bound = 0.5,
+  pop.upper.bound = 0.05,
   n.simulations = 999,
   alpha.level = 0.05,
   plot = TRUE
@@ -1354,7 +1354,7 @@ The maps and crosstabulation above indicate that there are important differences
 We summarize our understanding of the computational differences for default settings below, based on close examination of our software outputs, technical documentation for SaTScan, and the documentation and code repository for SpatialEpi.
 
 |                          |      SaTScan Hierarchical      |            SaTScan GINI            |                  SpatialEpi                  |
-|:----------------:|:----------------:|:----------------:|:----------------:|
+|:----------------:|:----------------:|:----------------:|:------------------:|
 |     possible shapes      |  circle (default) or ellipse   |    circle (default) or ellipse     |                    circle                    |
 | possible cluster centers | locations with rates \> normal |   locations with rates \> normal   |                all locations                 |
 |   maximum cluster size   |          50% of cases          | varies, not exceeding 50% of cases |              50% of population               |
@@ -1858,7 +1858,7 @@ tm_gee_weights <- tm_shape(gee_resid) +
     lwd = 0.2,
     palette = "Oranges",
     legend.hist = FALSE,
-    midpoint = 0
+    midpoint = 0.5
   ) +
   tm_shape(state) +
     tm_borders("grey", lwd = .5) +
