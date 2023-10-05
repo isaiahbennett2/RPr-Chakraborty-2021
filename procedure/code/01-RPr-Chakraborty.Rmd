@@ -10,7 +10,7 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../docs") })
 ---
 
-Version 2.1 \| First Created July 7, 2021 \| Updated September 21, 2023
+Version 2.1 \| First Created July 7, 2021 \| Updated October 5, 2023
 
 # Abstract
 
@@ -2011,27 +2011,22 @@ Out of concern to balance a need to control for spatial dependence while not acc
 To calculate the cluster relative risk, we created a list of unique cluster IDs and extracted the counties contained within each cluster from `SpatialEpi` output and calculated cluster relative risk as: `(incidence rate within the cluster) / (incidence rate outside of the cluster)`.
 We then classified the cluster relative risk with the original method, illustrated in Table 2.
 
-**Spatial Distribution of COVID-19 Cases and Disability**\
-The choropleth map we made in the **first part** of the reproduction analysis (Figure 2) reveals an identical spatial pattern to that of the original study's Figure 1, confirming the equivalence of our dependent variable with that of the original study.
+**Spatial Distribution of COVID-19 Cases and Disability** \\ The choropleth map we made in the **first part** of the reproduction analysis (Figure 2) reveals an identical spatial pattern to that of the original study's Figure 1, confirming the equivalence of our dependent variable with that of the original study.
 Both maps revealed that COVID-19 cases were distributed unevenly across space.
 In particular, cases were more prevalent in the southern part of the country, in the metropolitan areas of the northeast, Chicago, and California, and in some rural areas, including eastern Washington, New Mexico, and Iowa.
 The additional Percent Disability by Race Map showed an important clustering of Black people with any disabilities throughout much of the southern part of the country where there was an uneven distribution of COVID-19 cases.
 These coinciding clusters points to a disproportionate impact of COVID-19 on the Black disabled community.\
-
-**Correlation Analysis and Changes in Methodology**\
 Prior to Chakraborty's bivariate analysis of disability and COVID-19 incidence, we also mapped the spatial distribution of disability (Figure 3).
 This spatial visual analysis reveals many regions in which disability rates are high but COVID-19 incidence was still low, including rural New England, Appalachia, and northern Michigan.
 Conversely, many hotspots of COVID-19 incidence had low rates of disability, including metropolitan New England, South Florida, and Chicago.
 The two spatial distributions help explain the negative bivariate relationship between disability rates and COVID-19 incidence.
 
-**Variations in Kulldorff Spatial Scan Statistic**
-The summary statistics for the **second part** of the reproduction analysis matched perfectly with those of the original study, confirming that the reproduction uses identical original data.
+**Correlation Analysis and Changes in Methodology** \\ The summary statistics for the **second part** of the reproduction analysis matched perfectly with those of the original study, confirming that the reproduction uses identical original data.
 The original study used Pearson's correlation to test bivariate relationship between variables that are non-normally distributed, and we revised this to use the nonparametric Spearman's correlation coefficient.
 Our reanalysis of the correlations generally found identical directions and increased magnitudes, confirming the bivariate correlations and significance levels of most of the socio-demographic subcategories.
 However, biological sex may not be correlated with COVID-19 incidence rates, as the percentage of females with disabilities changes direction and significance.
 
-**Cluster-Based Risk Classification**
-The Kulldorff spatial scan statistic varied significantly between the original study and our reproduction and re-analysis with regards to selection of secondary clusters, interpretation of clusters, and relative risk scores.
+**Variations in Kulldorff Spatial Scan Statistic** \\ The Kulldorff spatial scan statistic varied significantly between the original study and our reproduction and re-analysis with regards to selection of secondary clusters, interpretation of clusters, and relative risk scores.
 SatScan and SpatialEpi identify the same most likely cluster, but different sets of secondary clusters.
 They also employ slightly different distance calculations, where SatScan calculates a great circle spherical distance and SpatialEpi approximates a kilometer grid based on simplified conversions of latitude and longitude degrees into a planar grid using kilometer units.
 SaTScan uses GINI statistics to select secondary clusters which maximize the difference between the population within clusters and the population outside of clusters, allowing for geographic overlap and finding 96 total clusters.
@@ -2040,8 +2035,7 @@ SpatialEpi selects the most likely secondary clusters while excluding clusters w
 This difference of parameters and computational environment explains the two different sets of clusters.
 The different sets of secondary clusters largely agree in terms of the most likely cluster in a region and diverge in terms of overlapping, small, and less likely clusters.
 
-**Challenges and Limitations in Spatial Analysis**
-The original study classified COVID risk using a local relative risk score for the county at the center of each cluster (Figure 4).
+**Cluster-Based Risk Classification** \\ The original study classified COVID risk using a local relative risk score for the county at the center of each cluster (Figure 4).
 Considering the relatively small number of clusters (102) compared to counties (3108), this method implies that the majority of counties in each state are classified as one low-risk cluster for the GEE analysis, and the remaining 53 clusters were composed of just a few counties at the centers of various COVID hotspots.
 When we extended the interpretation of clusters to use the local relative risk score of any county within a cluster (Figure 5), we find significantly more variance in COVID risk within states, resulting in 139 unique GEE clusters.
 However, this conceptualization apparently created GEE clusters defined in part by an ordinal classification of the dependent variable -- COVID incidence.
@@ -2050,13 +2044,11 @@ Therefore, a cluster-based relative risk classification seemed more appropriate 
 However, many of the most likely clusters extend across multiple states (see Figure 6, especially the southern states from Louisiana to South Carolina).
 This resulted in creation of GEE clusters composed of every county within a state, amounting to 111 unique GEE clusters overall.
 
-**Robustness of GEE Models**
-Our analysis of COVID-19 clusters in the context of controlling for spatial dependence has revealed several challenges and limitations to application of Kulldorff spatial scan statistics across different computational environments.
+**Challenges and Limitations in Spatial Analysis** \\ Our analysis of COVID-19 clusters in the context of controlling for spatial dependence has revealed several challenges and limitations to application of Kulldorff spatial scan statistics across different computational environments.
 These include inconsistent methods for determining secondary clusters, limitation to circular or ellipsoidal cluster shapes, inclusion of single-county clusters, and choosing a method to control for spatial dependence in COVID 19 risk without controlling for too much of the variance in the dependent variable.
 Ideally, we would have liked to use a GINI-based secondary cluster detection to classify counties by their maximum cluster-based relative risk score, but this particular conceptualization is not possible in available R packages.
 
-**GEE Results**
-In the **third part** of our reproduction analysis, the results from each the five GEE models were largely consistent with Chakraborty's, suggesting robustness to modeling decisions with regards to GEE clusters.
+**GEE Results** \\ In the **third part** of our reproduction analysis, the results from each the five GEE models were largely consistent with Chakraborty's, suggesting robustness to modeling decisions with regards to GEE clusters.
 However, a few independent variables exhibited instability across models, suggesting weak or spurious relationships.
 We ultimately modeled three different scenarios: 1.
 We reproduced the original analysis with the original data while changing only the computational environment to geepack in R.
@@ -2065,7 +2057,7 @@ We reproduced the Kulldorff spatial scan in R and reanalyzed the data by applyin
 3.
 We reproduced the Kulldorff spatial scan in R and reanalyzed the data by applying a cluster relative risk score to every county in a cluster.
 
-We found that reproducing the analysis with **geepack** resulted in slightly different GEE results than the original study, even when using data provided by the author from the original study.
+**Inferential Model Comparisons** \\ We found that reproducing the analysis with **geepack** resulted in slightly different GEE results than the original study, even when using data provided by the author from the original study.
 This suggests that the computational environments differ in their implementation of GEE, a method for which there are multiple approaches to parameter estimation.
 Still, the coefficients trend in the same direction with similar magnitudes, with the exception of the 35-64 age group.
 In our model that assigns local relative risk scores for all counties in clusters, the coefficients are weaker while more of the variance in COVID-19 incidence is accounted for in the GEE clustering method.
@@ -2079,6 +2071,7 @@ Comparing across each version of the model, we observed that most variables exhi
 However, some variables are less stable -- especially the black and other race categories, Hispanic ethnicity, and some age groups less affected by severe COVID-19 cases (18-34 and 35-64).
 Therefore, these variables are more sensitive to the design of GEE clusters, warranting further investigation to evaluate the internal validity of these relationships with regard to the model assumptions of GEE.
 
+**GEE Results** \\
 We confirmed support for Chakraborty's conclusion that although the overall disability percentage is negatively associated with confirmed COVID-19 cases, intra-categorical analysis with geographic GEE clustering reveals that socio-demographically disadvantaged PwDs were significantly over-represented in counties with higher COVID-19 incidence.
 We found the same direction for each independent variable of intra-categorical disability and COVID-19 incidence.
 However, we found weaker significance levels for the Black category and the Hispanic or Latino category.
@@ -2093,8 +2086,7 @@ We quickly diagnosed whether the clustering method was significantly skewing the
 Fortunately, we found the GLM coefficients to be consistent, and in most cases stronger, than the GEE model coefficients.
 Future replications of this research should consider selecting an alternative inferential statistical model which explicitly accounts for spatial dependence.
 
-**Research Design and Sources of Uncertainty**
-With regards to the **overall conclusions** and **research design**, we agree with the original author's cautious interpretation emphasizing "county-level associations" and the need for "additional data and analysis".
+**Research Design and Sources of Uncertainty** \\ With regards to the **overall conclusions** and **research design**, we agree with the original author's cautious interpretation emphasizing "county-level associations" and the need for "additional data and analysis".
 There are at least five sources of uncertainty in this study: ecological fallacy, scale dependency, modifiable areal unit problem, variable measurement, and spatial dependency.
 There is a risk of ecological fallacy with this research design, whereby county-level statistics for the whole population should not be interpreted as definitive inferential proof of individual-level relationships, especially for populations comprising no more than one third of any county.
 Counties are not weighted by population.
