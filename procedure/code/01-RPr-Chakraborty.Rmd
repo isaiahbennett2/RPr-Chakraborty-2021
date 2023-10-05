@@ -2,12 +2,12 @@
 title: "Reproduction of Chakraborty 2021: An intracategorical analysis of COVID-19 and people with disabilities"
 author: "Joseph Holler, Junyi Zhou, Peter Kedron, Drew An-Pham, Derrick Burt, Isaiah Bennett"
 date: "`r Sys.Date()`"
-output: pdf_document
+output: html_document
 editor_options:
   markdown:
     wrap: sentence
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../docs/report") })
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../docs") })
 ---
 
 Version 2.1 \| First Created July 7, 2021 \| Updated September 21, 2023
@@ -356,7 +356,7 @@ However, we replace the missing data with zeros, producing results identical to 
 
 ```{r missing data}
 # county with missing data
-filter(acs_covid, is.na(bpov_pct)) %>% st_drop_geometry() %>% kable(caption="Missing Data") %>% kable_styling(full_width = FALSE)
+filter(acs_covid, is.na(bpov_pct)) %>% st_drop_geometry() %>% pivot_longer(cols = covid_rate:y, names_to = "Variable", values_to = "Value") %>% kable(caption = "Missing Data") %>% kable_styling(full_width = FALSE)
 
 # replace NA with 0 for missing data
 acs_covid[is.na(acs_covid$bpov_pct), ]$bpov_pct <- 0
@@ -455,6 +455,56 @@ rm(acs_covid_stats)
 ```
 
 The descriptive statistics are identical, except that the original study seems to have rounded the COVID-19 statistics to zero decimal places.
+
+## Map Disability Percents By Race
+
+**Planned deviation for reanalysis:** We also map the percent of people with any disability for each racial category to investigate any spatial trends that might correspond with Covid-19 incidence clustering trends.
+
+```{r map-distribution of percent with disability by race}
+
+library(tmap)
+
+# Create a list of variables to map
+variables_to_map <- c("white_pct", "black_pct", "native_pct", "asian_pct", "other_pct")
+
+# Define custom legend titles
+custom_legend_titles <- c(
+  "White Alone",
+  "Black Alone",
+  "Native Alone",
+  "Asian Alone",
+  "Other Alone"
+)
+
+# Create a list of maps with custom legend titles
+maps_list <- lapply(seq_along(variables_to_map), function(i) {
+  var <- variables_to_map[i]
+  custom_title <- custom_legend_titles[i]
+  tm_shape(acs_covid) +
+    tm_polygons(var,
+      title = paste("Map for Disability Percent:", custom_title),
+      style = "fisher",
+      border.alpha = 0.2,
+      lwd = 0.2,
+      palette = "Oranges",
+      legend.hist = FALSE
+    ) +
+    tm_shape(state) +
+    tm_borders("grey", lwd = 0.5) +
+    tm_layout(
+      legend.position = c("left", "bottom"),
+      legend.title.size = 0.8,
+      legend.text.size = 0.4,
+      legend.width = 0.25,
+      legend.hist.size = 0.5,
+      legend.hist.height = 0.15
+    )
+})
+
+# Plot the maps side by side
+disability_by_race <- tmap_arrange(maps_list)
+disability_by_race
+```
 
 # Analytical methods
 
@@ -740,7 +790,7 @@ covid_kulldorff <- kulldorff(
   cases = covid_table$cases,
   population = covid_table$pop,
   expected.cases = expected.cases,
-  pop.upper.bound = 0.05,
+  pop.upper.bound = 0.50,
   n.simulations = 999,
   alpha.level = 0.05,
   plot = TRUE
@@ -785,6 +835,7 @@ print(
   ),
   quote = FALSE
 )
+
 ```
 
 The `SpatialEpi` implementation of Kulldorff spatial scan statistics provides output in the form of hierarchical lists analogous to the text output of SaTScan, but does not output a simple data frame or tabular output analogous to the shapefiles from SaTScan.
@@ -1354,7 +1405,7 @@ The maps and crosstabulation above indicate that there are important differences
 We summarize our understanding of the computational differences for default settings below, based on close examination of our software outputs, technical documentation for SaTScan, and the documentation and code repository for SpatialEpi.
 
 |                          |      SaTScan Hierarchical      |            SaTScan GINI            |                  SpatialEpi                  |
-|:----------------:|:----------------:|:----------------:|:------------------:|
+|:----------------:|:----------------:|:----------------:|:-----------------:|
 |     possible shapes      |  circle (default) or ellipse   |    circle (default) or ellipse     |                    circle                    |
 | possible cluster centers | locations with rates \> normal |   locations with rates \> normal   |                all locations                 |
 |   maximum cluster size   |          50% of cases          | varies, not exceeding 50% of cases |              50% of population               |
@@ -1884,6 +1935,7 @@ tmap_options(unit = "in")
 tmap_save(tm_author_clusters, here("results", "figures", "tm_author_clusters.png"))
 tmap_save(tm_covid_rates, here("results", "figures", "tm_covid_rates.png"))
 tmap_save(tm_disability_rates, here("results", "figures", "tm_disability_rates.png"))
+tmap_save(disability_by_race, here("results", "figures", "disability_by_race.png"))
 tmap_save(tm_spatialepi_clusters, here("results", "figures", "tm_spatialepi_clusters.png"))
 tmap_save(tm_spatialepi_gini, here("results", "figures", "tm_spatialepi_gini.png"))
 tmap_save(tm_spatialepi_hier, here("results", "figures", "tm_spatialepi_hier.png"))
@@ -1958,40 +2010,27 @@ At this point we observed the spatial heterogeneity of local relative risk (Figu
 Out of concern to balance a need to control for spatial dependence while not accounting for too much variation within the dependent variable, we decided to re-conceptualize the classification of COVID risk using cluster-based relative risk.
 To calculate the cluster relative risk, we created a list of unique cluster IDs and extracted the counties contained within each cluster from `SpatialEpi` output and calculated cluster relative risk as: `(incidence rate within the cluster) / (incidence rate outside of the cluster)`.
 We then classified the cluster relative risk with the original method, illustrated in Table 2.
-We re-classified the GEE clustering IDs based on state and cluster relative risk class and recalculated the generalized estimating equations using this alternative conceptualization of COVID-19 risk.
 
-Upon discovering different results in all of our reproduction GEE models compared to the original study, we added new models to assess the extent to which the different computational environment was causing differences in our results.
-We therefore ran another set of the five GEE models using data provided by the original author, expecting to find identical results.
-
-### Rationale for updated report
-
-This is the second version of our reproduction report.
-The first, registered at <https://doi.org/10.17605/OSF.IO/647EX> on July 22, 2022, represented our best knowledge of the study at that time.
-Subsequently, we improved our approaches to reproduction studies by revising pre-analysis plans and post-analysis reports into legible code RMarkdown documents.
-This change prompted us to re-order some content to flow more linearly with the sequencing required by code, and prompted us to digitize (if necessary) and import results from the original research into Rmarkdown for quantitative comparison to the reproduction study.
-These comparisons led to further insights and research into discrepancies between the original and reproduced Pearsons's correlations between various forms of the Kulldorff spatial scan statistic.
-We also discovered an improved method for comparing the results of generalized linear models by plotting all of the model results on a dot-wisker graph using the dotwhisker package.
-
-# Emily's Discussion
-
-Our reproduction of the original study was partially successful, leading to similar, but inexact results compared to the original study.
-A portion of the inexactitude may be attributed to differences in the computational environments.
-However, we have also reanalyzed the study and tested its robustness by changing some research parameters.
-Our results suggest support for the conclusions of the original study, but also emphasize the importance of reproduction studies to critically review the full details of the research design, to evaluate internal validity, and to test for uncertainty and robustness to key parameters.
-
+**Spatial Distribution of COVID-19 Cases and Disability**\
 The choropleth map we made in the **first part** of the reproduction analysis (Figure 2) reveals an identical spatial pattern to that of the original study's Figure 1, confirming the equivalence of our dependent variable with that of the original study.
 Both maps revealed that COVID-19 cases were distributed unevenly across space.
 In particular, cases were more prevalent in the southern part of the country, in the metropolitan areas of the northeast, Chicago, and California, and in some rural areas, including eastern Washington, New Mexico, and Iowa.
+The additional Percent Disability by Race Map showed an important clustering of Black people with any disabilities throughout much of the southern part of the country where there was an uneven distribution of COVID-19 cases.
+These coinciding clusters points to a disproportionate impact of COVID-19 on the Black disabled community.\
+
+**Correlation Analysis and Changes in Methodology**\
 Prior to Chakraborty's bivariate analysis of disability and COVID-19 incidence, we also mapped the spatial distribution of disability (Figure 3).
 This spatial visual analysis reveals many regions in which disability rates are high but COVID-19 incidence was still low, including rural New England, Appalachia, and northern Michigan.
 Conversely, many hotspots of COVID-19 incidence had low rates of disability, including metropolitan New England, South Florida, and Chicago.
 The two spatial distributions help explain the negative bivariate relationship between disability rates and COVID-19 incidence.
 
+**Variations in Kulldorff Spatial Scan Statistic**
 The summary statistics for the **second part** of the reproduction analysis matched perfectly with those of the original study, confirming that the reproduction uses identical original data.
 The original study used Pearson's correlation to test bivariate relationship between variables that are non-normally distributed, and we revised this to use the nonparametric Spearman's correlation coefficient.
 Our reanalysis of the correlations generally found identical directions and increased magnitudes, confirming the bivariate correlations and significance levels of most of the socio-demographic subcategories.
 However, biological sex may not be correlated with COVID-19 incidence rates, as the percentage of females with disabilities changes direction and significance.
 
+**Cluster-Based Risk Classification**
 The Kulldorff spatial scan statistic varied significantly between the original study and our reproduction and re-analysis with regards to selection of secondary clusters, interpretation of clusters, and relative risk scores.
 SatScan and SpatialEpi identify the same most likely cluster, but different sets of secondary clusters.
 They also employ slightly different distance calculations, where SatScan calculates a great circle spherical distance and SpatialEpi approximates a kilometer grid based on simplified conversions of latitude and longitude degrees into a planar grid using kilometer units.
@@ -2001,6 +2040,7 @@ SpatialEpi selects the most likely secondary clusters while excluding clusters w
 This difference of parameters and computational environment explains the two different sets of clusters.
 The different sets of secondary clusters largely agree in terms of the most likely cluster in a region and diverge in terms of overlapping, small, and less likely clusters.
 
+**Challenges and Limitations in Spatial Analysis**
 The original study classified COVID risk using a local relative risk score for the county at the center of each cluster (Figure 4).
 Considering the relatively small number of clusters (102) compared to counties (3108), this method implies that the majority of counties in each state are classified as one low-risk cluster for the GEE analysis, and the remaining 53 clusters were composed of just a few counties at the centers of various COVID hotspots.
 When we extended the interpretation of clusters to use the local relative risk score of any county within a cluster (Figure 5), we find significantly more variance in COVID risk within states, resulting in 139 unique GEE clusters.
@@ -2010,10 +2050,12 @@ Therefore, a cluster-based relative risk classification seemed more appropriate 
 However, many of the most likely clusters extend across multiple states (see Figure 6, especially the southern states from Louisiana to South Carolina).
 This resulted in creation of GEE clusters composed of every county within a state, amounting to 111 unique GEE clusters overall.
 
+**Robustness of GEE Models**
 Our analysis of COVID-19 clusters in the context of controlling for spatial dependence has revealed several challenges and limitations to application of Kulldorff spatial scan statistics across different computational environments.
 These include inconsistent methods for determining secondary clusters, limitation to circular or ellipsoidal cluster shapes, inclusion of single-county clusters, and choosing a method to control for spatial dependence in COVID 19 risk without controlling for too much of the variance in the dependent variable.
 Ideally, we would have liked to use a GINI-based secondary cluster detection to classify counties by their maximum cluster-based relative risk score, but this particular conceptualization is not possible in available R packages.
 
+**GEE Results**
 In the **third part** of our reproduction analysis, the results from each the five GEE models were largely consistent with Chakraborty's, suggesting robustness to modeling decisions with regards to GEE clusters.
 However, a few independent variables exhibited instability across models, suggesting weak or spurious relationships.
 We ultimately modeled three different scenarios: 1.
@@ -2051,6 +2093,7 @@ We quickly diagnosed whether the clustering method was significantly skewing the
 Fortunately, we found the GLM coefficients to be consistent, and in most cases stronger, than the GEE model coefficients.
 Future replications of this research should consider selecting an alternative inferential statistical model which explicitly accounts for spatial dependence.
 
+**Research Design and Sources of Uncertainty**
 With regards to the **overall conclusions** and **research design**, we agree with the original author's cautious interpretation emphasizing "county-level associations" and the need for "additional data and analysis".
 There are at least five sources of uncertainty in this study: ecological fallacy, scale dependency, modifiable areal unit problem, variable measurement, and spatial dependency.
 There is a risk of ecological fallacy with this research design, whereby county-level statistics for the whole population should not be interpreted as definitive inferential proof of individual-level relationships, especially for populations comprising no more than one third of any county.
@@ -2064,7 +2107,24 @@ The study accounts for spatial dependency using the GEE models to cluster county
 However, the GEE method simply uses correlation matrices to weight each county observation according to the number of observations in its cluster and the overall within-cluster correlation of standard errors.
 The spatial dependence between counties in different clusters is not modelled, even if the counties are adjacent to each other.
 
+## Conclusion
+
+Our reproduction of the original study was partially successful, leading to similar, but inexact results compared to the original study.
+A portion of the inexactitude may be attributed to differences in the computational environments.
+However, we have also reanalyzed the study and tested its robustness by changing some research parameters.
+Our results suggest support for the conclusions of the original study, but also emphasize the importance of reproduction studies to critically review the full details of the research design, to evaluate internal validity, and to test for uncertainty and robustness to key parameters.
+
 In sum, although some of our results differed from Chakraborty's because of differences in analytical methods, conceptualizations, and computational environments, our reproduction results still suggest that PwDs are likely to experience multiple jeopardy based on the convergence of their disability, racial/ethnic minority, and poverty status.
 We reiterate Chakraborty's carefully limited interpretation emphasizing county-level relationships and the need for additional data and research, because the estimated relationship at the county level may not hold at the individual level.
 Interpretation of the results were based on aggregate statistics at the county level and on statistical methods which produce approximate estimates, not inferences.
 Further work is needed to reliably infer relationships between minority PwDs and COVID-19 morbidity and mortality, especially at finer geographic scales.
+
+### Rationale for updated report
+
+This is the third version of our reproduction report.
+The first, registered at <https://doi.org/10.17605/OSF.IO/647EX> on July 22, 2022, represented our best knowledge of the study at that time.
+In the second reproduction analysis, we improved our approaches to reproduction studies by revising pre-analysis plans and post-analysis reports into legible code RMarkdown documents.
+This change prompted us to re-order some content to flow more linearly with the sequencing required by code, and prompted us to digitize (if necessary) and import results from the original research into Rmarkdown for quantitative comparison to the reproduction study.
+These comparisons led to further insights and research into discrepancies between the original and reproduced Pearsons's correlations between various forms of the Kulldorff spatial scan statistic.
+We also discovered an improved method for comparing the results of generalized linear models by plotting all of the model results on a dot-wisker graph using the dotwhisker package.
+In this third analysis, efforts were focused on improving and fixing the rendering of figures and graphics in addition to the creation of new maps that helped investigate the descriptive statistics of disability percent by race and enable further comparison of these statistics with the overall COVID-19 incidence rates.
